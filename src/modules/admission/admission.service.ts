@@ -6,8 +6,8 @@ import validateObjectId from "../../utils/validateObjectId";
 
 import { CourseConstants } from "../course/course.constant";
 import { Course } from "../course/course.model";
+import "../user/user.model";
 
-import mongoose from "mongoose";
 import {
   AdmissionConstants,
   admissionSearchableFields,
@@ -63,14 +63,14 @@ const createAdmission = async (payload: TCreateAdmissionPayload) => {
   if (!course.isActive) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      "This course is currently inactive.",
+      AdmissionConstants.messages.inactiveCourse,
     );
   }
 
   if (!course.isPublished) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      "This course is not available for admission.",
+      AdmissionConstants.messages.unpublishedCourse,
     );
   }
 
@@ -95,7 +95,7 @@ const createAdmission = async (payload: TCreateAdmissionPayload) => {
 
   const admission = await Admission.create(payload);
 
-  return admission.populate([
+  await admission.populate([
     {
       path: "course",
       select: "title slug",
@@ -105,6 +105,8 @@ const createAdmission = async (payload: TCreateAdmissionPayload) => {
       select: "name email",
     },
   ]);
+
+  return admission;
 };
 
 const getMyAdmissions = async (
@@ -114,18 +116,19 @@ const getMyAdmissions = async (
   validateObjectId(userId, "User");
 
   const admissionQuery = new QueryBuilder(
-    Admission.find({ user: userId })
-      .populate({
-        path: "course",
-        select: "title slug thumbnail duration level isAdmissionOpen",
-      })
-      .sort("-createdAt"),
-    query,
+    Admission.find({ user: userId }).populate({
+      path: "course",
+      select: "title slug thumbnail duration level isAdmissionOpen",
+    }),
+    {
+      sort: "-createdAt",
+      ...query,
+    },
   )
     .search(admissionSearchableFields)
     .filter()
     .sort()
-    .paginate()
+    .paginate();
 
   const data = await admissionQuery.modelQuery.lean();
   const meta = await admissionQuery.countTotal();
@@ -136,10 +139,22 @@ const getMyAdmissions = async (
   };
 };
 
-const getSingleAdmission = async (id: string) => {
-  validateObjectId(id, "Admission");
+const getSingleAdmission = async (
+  admissionId: string,
+  userId?: string,
+) => {
+  validateObjectId(admissionId, "Admission");
 
-  const admission = await Admission.findById(id)
+  const filter: Record<string, unknown> = {
+    _id: admissionId,
+  };
+
+  if (userId) {
+    validateObjectId(userId, "User");
+    filter.user = userId;
+  }
+
+  const admission = await Admission.findOne(filter)
     .populate({
       path: "course",
       select: "title slug thumbnail duration level description",
@@ -171,12 +186,15 @@ const getAllAdmissions = async (query: Record<string, unknown>) => {
         path: "user",
         select: "name email",
       }),
-    query,
+    {
+      sort: "-createdAt",
+      ...query,
+    },
   )
     .search(admissionSearchableFields)
     .filter()
     .sort()
-    .paginate()
+    .paginate();
 
   const data = await admissionQuery.modelQuery.lean();
   const meta = await admissionQuery.countTotal();
@@ -190,10 +208,8 @@ const getAllAdmissions = async (query: Record<string, unknown>) => {
 const reviewAdmission = async (
   id: string,
   payload: TReviewAdmissionPayload,
-  reviewedBy: string,
 ) => {
   validateObjectId(id, "Admission");
-  validateObjectId(reviewedBy, "User");
 
   const admission = await Admission.findById(id);
 
@@ -209,14 +225,13 @@ const reviewAdmission = async (
   admission.status = payload.status;
 
   admission.review = {
-    reviewedBy: new mongoose.Types.ObjectId(reviewedBy),
     reviewedAt: new Date(),
     remark: payload.remark,
   };
 
   await admission.save();
 
-  return admission.populate([
+  await admission.populate([
     {
       path: "course",
       select: "title slug",
@@ -230,6 +245,8 @@ const reviewAdmission = async (
       select: "name email",
     },
   ]);
+
+  return admission;
 };
 
 export const AdmissionService = {

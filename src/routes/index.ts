@@ -1,6 +1,7 @@
 import { Router } from "express";
-import { CategoryRoutes } from './../modules/category/category.route';
+import { AdmissionRoutes } from "../modules/admission/admission.route";
 import { CourseRoutes } from "../modules/course/course.route";
+import { CategoryRoutes } from "./../modules/category/category.route";
 
 const router = Router();
 
@@ -15,7 +16,11 @@ const moduleRoutes: {
   {
     path: "/courses",
     route: CourseRoutes,
-  }
+  },
+  {
+    path: "/admissions",
+    route: AdmissionRoutes,
+  },
 ];
 
 moduleRoutes.forEach((route) => {
