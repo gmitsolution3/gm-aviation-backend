@@ -35,7 +35,7 @@ export class QueryBuilder<T> {
     this.query = query;
   }
 
-  search(searchableFields: string[]) {
+  search(searchableFields: ReadonlyArray<string>) {
     const searchTerm =
       typeof this.query.searchTerm === "string"
         ? this.query.searchTerm.trim()

@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { CategoryRoutes } from './../modules/category/category.route';
 
 const router = Router();
 
@@ -6,10 +7,10 @@ const moduleRoutes: {
   path: string;
   route: Router;
 }[] = [
-  // {
-  //   path: "/settings",
-  //   route: SettingsRoutes,
-  // }
+  {
+    path: "/categories",
+    route: CategoryRoutes,
+  }
 ];
 
 moduleRoutes.forEach((route) => {
