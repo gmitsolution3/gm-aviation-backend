@@ -4,8 +4,6 @@ import connectDB from "./config/database";
 
 async function startServer() {
   try {
-    console.log("Mongo URI exists:", !!config.mongoURI);
-    console.log("Mongo URI prefix:", config.mongoURI?.slice(0, 20));
     await connectDB();
 
     // listen to port
